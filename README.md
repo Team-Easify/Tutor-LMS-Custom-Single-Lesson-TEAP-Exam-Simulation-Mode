@@ -1,4 +1,4 @@
-# Tutor LMS - Custom Single Lesson (Exam Simulation Mode)
+# Tutor LMS - Custom Single Lesson (TEAP - Exam Simulation Mode)
 
 Este repositório contém um template customizado para a visualização de lições (*Single Lesson*) do plugin **Tutor LMS** para WordPress. O layout foi desenvolvido para simular um ambiente de prova ou avaliação cronometrada, dividindo a tela entre leitura de textos e resolução de atividades, com recursos avançados de persistência de tempo, controle de mídia e rastreamento de progresso de atividades interativas H5P.
 
