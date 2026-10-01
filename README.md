@@ -1,100 +1,193 @@
-# Tutor LMS - Custom Single Lesson (TEAP - Exam Simulation Mode)
+# Tutor LMS — Custom Single Lesson (TEAP)
 
-Este repositório contém um template customizado para a visualização de lições (*Single Lesson*) do plugin **Tutor LMS** para WordPress. O layout foi desenvolvido para simular um ambiente de prova ou avaliação cronometrada, dividindo a tela entre leitura de textos e resolução de atividades, com recursos avançados de persistência de tempo, controle de mídia e rastreamento de progresso de atividades interativas H5P.
+Template customizado para a visualização de lições (*Single Lesson*) do plugin **Tutor LMS** no WordPress.
+
+O layout opera em **dois modos**, decididos automaticamente por um marcador escrito na descrição do tópico:
+
+* **Modo Simulado** — ambiente de prova cronometrada, com grade de questões e contador regressivo.
+* **Modo Aula** — leitura limpa, sem cronômetro e sem grade, para aulas introdutórias, tutoriais e conteúdo de apoio.
+
+Ambos os modos compartilham o mesmo header, o mesmo menu lateral e as mesmas ferramentas de anexos e anotações.
 
 ---
 
 ## 🚀 Funcionalidades Principais
 
-* **Tela Dividida (Split Screen):** Organiza a página em duas colunas independentes com rolagem de tela individual. O lado esquerdo é dedicado à leitura do material (texto/imagens) e o lado direito é reservado para as questões ou atividades.
-* **Cronômetro de Prova Persistente:** Contador decrescente de 50 minutos que permanece ativo e sincronizado entre as páginas do mesmo tópico. Utiliza persistência via `localStorage` com cálculo de tempo real (timestamp), impedindo que o aluno trapaceie reiniciando a página ou fechando o navegador. Inclui botões para **Pausar/Retomar** e **Reiniciar** o tempo.
-* **Abas Deslizantes Laterais (Slide-out Drawers):** Duas gavetas laterais de acesso rápido para exibir **Tutorial** (dicas) e **Resolução** de forma limpa. 
-* **Pausa Automática de Vídeo/Áudio:** Se o aluno fechar o painel lateral de Tutorial ou Resolução enquanto assiste a um vídeo, o script identifica e pausa automaticamente a reprodução de mídias nativas (`<video>`) ou incorporadas em `iframe` (YouTube/Vimeo).
-* **Menu Lateral Agrupado por Áreas (Dropdowns):** Reestrutura o menu padrão do Tutor LMS. Em vez de listar tópicos como menus independentes, ele agrupa tópicos que possuem prefixos em comum (ex: `Área - Tópico`) sob uma mesma categoria expansível. O clique no subitem direciona automaticamente o aluno para a primeira aula daquele conjunto, sem quebrar o loop interno do WordPress.
-* **Rastreamento H5P via xAPI:** Monitora interações em tempo real com atividades H5P. No primeiro clique do aluno em uma questão, o script escuta o evento xAPI `'interacted'` e altera visualmente a cor da aula na barra superior para amarelo ("Em andamento").
+### Comuns aos dois modos
+
+* **Tela Dividida (Split Screen):** quando o conteúdo contém o delimitador `<!--split-->`, a página se divide em duas colunas com rolagem independente. Sem o delimitador, o conteúdo ocupa uma coluna única centralizada.
+* **Vídeo da Aula:** o vídeo configurado na aba *Vídeo* do editor do Tutor é renderizado no topo da coluna esquerda, em 16:9. Usa o player nativo do Tutor e, se ele não responder, recorre a um embed via oEmbed ou a uma tag `<video>`.
+* **Abas Deslizantes Laterais:** gavetas de acesso rápido para **Tutorial** (dicas) e **Resolução**, renderizadas apenas quando os respectivos delimitadores existem no conteúdo.
+* **Pausa Automática de Mídia:** ao fechar uma gaveta, o script pausa vídeos nativos (`<video>`) e reinicia `iframe`s incorporados (YouTube/Vimeo), evitando áudio tocando em segundo plano.
+* **Anexos:** painel lateral que lista os arquivos da aba *Anexos* da aula, com nome, tamanho e download direto. O botão exibe um badge com a contagem.
+* **Anotações:** painel lateral com as anotações do aluno naquela aula, cada uma com data e opção de excluir.
+* **Anotar:** modal ancorado no canto superior direito para escrever uma anotação. Salva por AJAX, sem recarregar a página, e atualiza a lista e o badge em tempo real.
+* **Menu Lateral Híbrido:** ver a seção *Estrutura do Currículo*.
+
+### Exclusivos do Modo Simulado
+
+* **Grade de Questões:** barra numerada no header com todas as lições do tópico, coloridas por estado — azul (atual), verde (concluída), amarelo (em andamento), branco (não iniciada).
+* **Cronômetro Persistente:** contador regressivo de 90 minutos, sincronizado entre as páginas do mesmo tópico. Usa `localStorage` com cálculo por timestamp, de modo que recarregar ou fechar o navegador não devolve tempo ao aluno. Inclui **Pausar/Retomar** e **Reiniciar**.
+* **Rastreamento H5P via xAPI:** no primeiro clique do aluno em uma questão H5P, o script escuta o evento `interacted` e marca aquela questão como "em andamento" na grade.
 
 ---
 
 ## 📂 Estrutura de Instalação
 
-Para utilizar este template no seu site WordPress, você deve adicioná-lo ao diretório do seu **tema filho (child theme)** para evitar que atualizações futuras do plugin apaguem suas customizações.
+São **dois arquivos**. Ambos vão no **tema filho**, para que atualizações do plugin não apaguem as customizações.
 
-Crie ou envie o arquivo para o seguinte caminho:
+**1. O template:**
 
 ```text
 wp-content/themes/seu-tema-child/tutor/single-lesson.php
 ```
 
+**2. Os handlers das anotações** — cole o conteúdo de `anotacoes-functions.php` no final do `functions.php` do tema filho (sem repetir a tag `<?php` de abertura):
+
+```text
+wp-content/themes/seu-tema-child/functions.php
+```
+
+> **Atenção:** sem o passo 2, o botão **Anotar** abre o modal, mas o botão Salvar falha. Os endpoints AJAX precisam estar registrados no WordPress.
+
 ---
 
 ## ⚙️ Configuração Inicial
 
-Abra o arquivo `single-lesson.php` e altere a constante correspondente ao ID do curso que deseja aplicar o comportamento. Na linha **23**, substitua o valor pelo ID do seu curso:
+Abra `single-lesson.php` e ajuste o ID do curso onde o layout deve ser aplicado:
 
 ```php
 // Definir o ID do curso específico para aplicar o comportamento
-$custom_course_id = 92300; // Substitua por seu ID de curso real
+$custom_course_id = 127272; // Substitua pelo ID do seu curso
 ```
 
-*Nota: Todas as demais aulas de outros cursos que não correspondam a este ID continuarão carregando o layout padrão e nativo do Tutor LMS.*
+Lições de qualquer outro curso continuam carregando o layout padrão do Tutor LMS.
+
+### Duração da prova
+
+O cronômetro é definido no bloco JavaScript, dentro da seção **A**:
+
+```js
+var durationMinutes = 90;
+```
+
+### Header do tema
+
+O template chama `get_tutor_header( true )` e `get_tutor_footer( true )`. O `true` ativa o modo sem distrações do Tutor, que suprime o header e o footer do tema — incluindo o do **Elementor Theme Builder** — mantendo `wp_head()` e `wp_footer()` intactos para que scripts e estilos continuem carregando.
 
 ---
 
-## 📝 Como Estruturar o Conteúdo no WordPress
+## 🎚️ O Marcador `[simulado]`
 
-Toda a lógica de divisão de telas e carregamento das abas laterais é feita de forma simples diretamente no **Editor de Blocos (Gutenberg)** ou **Editor Clássico** do WordPress, utilizando delimitadores HTML.
+Um único marcador controla o modo da lição **e** como o tópico aparece no menu lateral.
 
-Escreva o conteúdo da sua lição em um único campo de texto estruturado da seguinte forma:
+Escreva `[simulado]` na **descrição (summary) do Tópico**, no Course Builder do Tutor LMS. A detecção ignora caixa e espaços internos, então `[Simulado]` e `[ simulado ]` funcionam igual.
+
+| | Tópico **com** `[simulado]` | Tópico **sem** o marcador |
+|---|---|---|
+| Header | Grade de questões + cronômetro | Título da aula |
+| Menu lateral | Agrupado por área (ver abaixo) | Tópico próprio, listando suas aulas |
+| Botões de ação | Anexos, Anotações, Anotar, Concluir, navegação | Idênticos |
+| Split `<!--split-->` | Funciona | Funciona |
+
+O marcador é removido automaticamente do texto exibido ao aluno.
+
+---
+
+## 📝 Como Estruturar o Conteúdo da Aula
+
+A divisão de telas e as gavetas laterais são definidas por delimitadores HTML escritos direto no editor de conteúdo da aula (Gutenberg ou Clássico):
 
 ```text
-[Insira aqui o texto e imagens explicativas que ficarão no lado esquerdo da tela]
+[Texto e imagens que ficarão no lado esquerdo da tela]
 
 <!--split-->
 
-[Insira aqui os blocos de perguntas, atividades ou shortcode do H5P que ficarão no lado direito]
+[Perguntas, atividades ou shortcode do H5P, no lado direito]
 
 <!--tutorial-->
 
-[Insira aqui a dica de apoio ou bloco de vídeo explicativo do YouTube/Vimeo que aparecerá na gaveta de "Tutorial"]
+[Dica de apoio ou vídeo explicativo, para a gaveta "Tutorial"]
 
 <!--resolution-->
 
-[Insira aqui o texto passo a passo ou o player de vídeo com a resolução comentada para a gaveta "Resolução"]
+[Passo a passo ou vídeo com a resolução comentada, para a gaveta "Resolução"]
 ```
 
-> **Atenção:** Caso não utilize os delimitadores `<!--tutorial-->` ou `<!--resolution-->` em uma lição específica, as respectivas abas flutuantes no canto da tela não serão renderizadas de forma automática.
+Todos os delimitadores são opcionais e independentes. Sem `<!--split-->`, a aula fica em coluna única; sem `<!--tutorial-->` ou `<!--resolution-->`, as respectivas gavetas não são renderizadas.
+
+### URLs de vídeo nas gavetas
+
+Para que uma URL do YouTube ou Vimeo vire um player dentro da gaveta, escreva-a **em uma linha própria**, separada do delimitador:
+
+```text
+<!--resolution-->
+https://www.youtube.com/watch?v=XXXXXXXXXXX
+```
+
+O template também converte URLs coladas logo após o delimitador, mas a linha separada é o formato confiável, porque é o que o auto-embed nativo do WordPress reconhece.
 
 ---
 
 ## 🗂️ Estrutura do Currículo no Tutor LMS
 
-Para que o menu dinâmico de navegação lateral agrupe os tópicos por área sob o mesmo dropdown expansível (accordion), siga o padrão de nomenclatura no cadastro de **Tópicos** do Tutor LMS usando traços:
+O menu lateral monta cada tópico de um jeito, conforme o marcador.
+
+### Tópicos de simulado — agrupados por área
+
+Nomeie os tópicos no padrão `Área - Nome`, usando um traço como separador, e marque a descrição com `[simulado]`:
 
 * **Tópico 1:** `Biológicas/Saúde - Texto 1`
 * **Tópico 2:** `Biológicas/Saúde - Texto 2`
 * **Tópico 3:** `Exatas/Tecnológicas - Texto 1`
-* **Tópico 4:** `Exatas/Tecnológicas - Texto 2`
 
-**Resultado no menu gerado:**
+O que vem antes do traço vira o grupo expansível; o que vem depois vira o item, que leva à primeira questão daquele tópico.
+
 ```text
 ▼ Biológicas/Saúde
-  ├─ Texto 1 (Link para primeira aula do Tópico 1)
-  └─ Texto 2 (Link para primeira aula do Tópico 2)
-  
+  ├─ Texto 1 → primeira questão do Tópico 1
+  └─ Texto 2 → primeira questão do Tópico 2
+
 ▼ Exatas/Tecnológicas
-  ├─ Texto 1 (Link para primeira aula do Tópico 3)
-  └─ Texto 2 (Link para primeira aula do Tópico 4)
+  └─ Texto 1 → primeira questão do Tópico 3
 ```
 
-O código foi projetado para normalizar espaços em branco não-quebráveis (`&nbsp;`) e realizar a quebra de texto de forma segura utilizando qualquer variação de hífen padrão (`-`), meia-risca (`–`), travessão (`—`) ou sinal matemático de menos (`−`).
+A quebra do título normaliza espaços não-quebráveis (`&nbsp;`) e aceita qualquer variação de traço: hífen (`-`), meia-risca (`–`), travessão (`—`) ou sinal de menos (`−`).
+
+### Tópicos de aula — listagem normal
+
+Sem o marcador, o tópico aparece com o nome inteiro e lista **as próprias aulas**, cada uma linkando para si mesma, com um ✓ verde nas já concluídas:
+
+```text
+▼ Intro Class
+  ├─ ✓ Boas-Vindas ao Preparatório
+  ├─ ✓ Instruções para o Desafio
+  └─   Seus Objetivos
+```
+
+O grupo que contém a aula atual abre automaticamente ao carregar a página.
+
+---
+
+## 🗒️ Onde as Anotações Ficam Salvas
+
+As anotações são gravadas em `user_meta`, uma chave por aula:
+
+```text
+_tutor_custom_notes_{lesson_id}  =>  array de [ 'text' => ..., 'date' => ... ]
+```
+
+Essa é uma implementação própria, independente do sistema de notas nativo do Tutor — que pertence à interface padrão do plugin, substituída por este template. O limite é de 200 anotações por aula, para não inflar a tabela de usermeta.
+
+Os dois endpoints AJAX registrados são `tutor_custom_save_note` e `tutor_custom_delete_note`, ambos protegidos por nonce e exigindo usuário autenticado.
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-* **PHP:** Estruturação dinâmica e queries WordPress/Tutor LMS.
-* **CSS3:** Flexbox, Grid Layout, transições de animação de abas e estilização responsiva.
-* **JavaScript (Vanilla):** Lógica do cronômetro baseado em Unix timestamp, persistência em `localStorage`, listeners de eventos xAPI para H5P e manipulação de DOM para drawers e accordions.
+* **PHP:** queries do WordPress/Tutor LMS, detecção de modo, handlers AJAX com nonce e sanitização.
+* **CSS3:** Flexbox, Grid Layout, `aspect-ratio`, transições das gavetas e media queries próprias (sem dependência do Elementor).
+* **JavaScript (Vanilla):** cronômetro por Unix timestamp, persistência em `localStorage`, `fetch` para as anotações, listeners xAPI do H5P e manipulação de DOM para gavetas, accordion e modal.
 
 ---
 
