@@ -1448,6 +1448,257 @@ get_tutor_header( true );
 		flex-direction: column;
 	}
 }
+
+/* ==========================================================================
+   CELULAR NA HORIZONTAL: header compacto e layout igual ao desktop
+   (tela baixa e deitada; vem depois das regras acima para sobrescreve-las)
+   ========================================================================== */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+    .custom-course-header,
+    .custom-course-header.is-lesson-mode {
+        padding: 6px 12px;
+        gap: 10px;
+        flex-wrap: nowrap;
+    }
+
+    .header-left-block {
+        width: auto;
+        flex-shrink: 0;
+    }
+
+    .sidebar-toggle-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+        margin-right: 10px;
+    }
+
+    .custom-course-header.is-lesson-mode .lesson-title-header {
+        font-size: 14px;
+    }
+
+    /* Grade de questoes: 10 por linha, como no desktop */
+    .lessons-grid-title {
+        display: none;
+    }
+
+    .lessons-grid {
+        grid-template-columns: repeat(10, 1fr);
+        gap: 3px;
+    }
+
+    .lesson-num-btn,
+    .lesson-num-btn[class] {
+        width: 18px;
+        height: 18px;
+        font-size: 10px !important;
+        border-radius: 3px;
+    }
+
+    .header-right-meta {
+        width: auto;
+        flex: 1;
+        min-width: 0;
+        gap: 8px;
+    }
+
+    /* Nome numa linha so + cronometro menor */
+    .student-name {
+        font-size: 11px;
+        max-width: 115px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .timer-container {
+        gap: 6px;
+        margin-top: 2px;
+    }
+
+    .timer {
+        font-size: 24px;
+    }
+
+    .timer-ctrl-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 8px;
+    }
+
+    .header-actions {
+        gap: 5px;
+        align-items: flex-end;
+    }
+
+    .header-tools {
+        gap: 5px;
+    }
+
+    /* Ferramentas so com icone (o texto continua no title do botao) */
+    .tool-btn {
+        padding: 5px 8px;
+        gap: 4px;
+    }
+
+    .tool-btn .tool-label {
+        display: none;
+    }
+
+    .tool-ico {
+        font-size: 12px;
+    }
+
+    .nav-arrows {
+        gap: 6px;
+    }
+
+    .finish-btn-wrapper .tutor-btn {
+        padding: 4px 8px !important;
+        white-space: nowrap;
+    }
+
+    .finish-btn-wrapper .tutor-btn span {
+        font-size: 10px;
+    }
+
+    .arrow-btn {
+        width: 22px;
+        height: 22px;
+        font-size: 11px;
+    }
+
+    /* Menu lateral como gaveta ao lado do conteudo (como no desktop) */
+    .custom-course-main-wrapper {
+        flex-direction: row;
+    }
+
+    .custom-course-sidebar {
+        width: 230px !important;
+        max-height: none;
+        border-bottom: none;
+        border-right: 1px solid #e1e6eb;
+    }
+
+    .custom-course-main-wrapper.sidebar-closed .custom-course-sidebar {
+        width: 0px !important;
+        height: auto !important;
+        max-height: none !important;
+        border-right: none;
+    }
+
+    .grouped-menu-accordion {
+        min-width: 210px;
+    }
+
+    .custom-course-body {
+        height: 100%;
+    }
+
+    .body-pane {
+        padding: 16px;
+    }
+
+    /* Gavetas laterais ocupam mais da altura, que e pequena */
+    .slideout-panel {
+        --panel-width: min(calc(80vh * 0.85 * 16 / 9), 90vw);
+        top: 10%;
+        height: 80%;
+    }
+
+    .panel-header {
+        padding: 10px 16px;
+    }
+
+    .panel-header h4 {
+        font-size: 15px;
+    }
+
+    .slideout-tab-btn {
+        padding: 8px 8px;
+        font-size: 12px;
+    }
+
+    /* Modal de boas-vindas do guia cabe na altura da tela */
+    .tour-welcome {
+        max-height: calc(100vh - 32px);
+        overflow-y: auto;
+    }
+
+    .tour-welcome-head {
+        padding: 14px 20px 12px;
+    }
+
+    .tour-welcome-icon {
+        font-size: 24px;
+        margin-bottom: 4px;
+    }
+}
+
+@media screen and (orientation: landscape) and (max-height: 500px) and (max-width: 640px) {
+    .student-name {
+        display: none;
+    }
+}
+
+/* ==========================================================================
+   CELULAR/TABLET NA VERTICAL: bloqueia o curso e pede para girar o aparelho
+   (so em telas de toque, para nao bloquear uma janela estreita no computador)
+   ========================================================================== */
+.rotate-lock {
+    display: none;
+}
+
+@media screen and (orientation: portrait) and (max-width: 1024px) and (hover: none) and (pointer: coarse) {
+    html,
+    body {
+        overflow: hidden !important;
+    }
+
+    .rotate-lock {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: linear-gradient(45deg, #1E1763, #241d7a);
+        color: #ffffff;
+        font-family: sans-serif;
+        text-align: center;
+    }
+
+    .rotate-lock-box {
+        max-width: 320px;
+    }
+
+    .rotate-lock-icon {
+        display: inline-block;
+        font-size: 64px;
+        line-height: 1;
+        margin-bottom: 20px;
+        animation: rotateHint 2s ease-in-out infinite;
+    }
+
+    .rotate-lock h3 {
+        margin: 0 0 10px;
+        font-size: 22px;
+        color: #ffffff !important;
+    }
+
+    .rotate-lock p {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.85);
+    }
+}
+
+@keyframes rotateHint {
+    0%, 20%   { transform: rotate(0deg); }
+    50%, 80%  { transform: rotate(-90deg); }
+    100%      { transform: rotate(0deg); }
+}
 </style>
 
 <!-- ==========================================================================
@@ -1904,6 +2155,15 @@ get_tutor_header( true );
     </div>
 </div>
 <?php endif; ?>
+
+<!-- Bloqueio da orientacao vertical no celular/tablet (exibido so via CSS) -->
+<div class="rotate-lock" role="alertdialog" aria-labelledby="rotate-lock-title">
+    <div class="rotate-lock-box">
+        <div class="rotate-lock-icon">&#128241;</div>
+        <h3 id="rotate-lock-title">Gire o seu aparelho</h3>
+        <p>Este curso foi feito para ser usado na horizontal, igual à tela da prova. Vire o celular ou tablet para continuar.</p>
+    </div>
+</div>
 
 <!-- ==========================================================================
      6. SCRIPT JAVASCRIPT
