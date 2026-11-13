@@ -7,6 +7,9 @@
  *                              e agrupamento por area no menu lateral.
  *  - Topico SEM [simulado]  -> header enxuto (menu, concluir, navegacao)
  *                              e topico listado normalmente com suas licoes.
+ *  - Topico com [orientacao] -> header enxuto (layout de aula), mas entra no
+ *                              menu agrupado por area, como os simulados.
+ *                              Use no titulo o mesmo padrao "Area - Nome".
  *
  * @package Tutor\Templates
  */
@@ -24,12 +27,32 @@ $current_user = wp_get_current_user();
 // ==========================================================================
 // 1. FILTRO DE CURSO ESPECIFICO
 // ==========================================================================
-$custom_course_id = 127272; // <-- ALTERE AQUI PARA O ID DO SEU CURSO
+$custom_course_ids = array( 127272,68267 ); // <-- ALTERE AQUI PARA O ID DO SEU CURSO
 
-if ( $course_id != $custom_course_id ) {
+if ( ! in_array( $course_id, $custom_course_ids ) ) {
     include tutor()->path . 'templates/single-lesson.php';
     return;
 }
+
+// ==========================================================================
+// 1.1 GUIA DE INTEGRACAO (ONBOARDING TOUR)
+// ==========================================================================
+// IDs das aulas onde o guia abre SOZINHO (com o modal "Ver tutorial / Pular").
+// Ex.: array( 128001, 128050 )
+$tour_auto_lesson_ids = array( 127471,131835,131944,132162,132279 ); // <-- COLOQUE AQUI O(S) ID(S)
+
+// IDs das aulas onde o botao "Guia" do header NAO deve aparecer.
+// Ex.: array( 128100, 128101 )
+$tour_button_exclude_ids = array( 77136,72713,72708,72709,72710,72711,72712,105774 ); // <-- COLOQUE AQUI O(S) ID(S)
+
+// true  = o modal automatico aparece so na 1a visita do aluno a cada aula
+//         configurada (fica salvo no navegador apos "Pular" ou concluir)
+// false = o modal aparece em toda visita
+$tour_auto_show_once = false;
+
+$tour_is_auto    = in_array( (int) $content_id, array_map( 'intval', $tour_auto_lesson_ids ), true );
+$tour_has_button = ! in_array( (int) $content_id, array_map( 'intval', $tour_button_exclude_ids ), true );
+$tour_enabled    = $tour_is_auto || $tour_has_button;
 
 // ==========================================================================
 // MARCADOR DE MODO SIMULADO (LIDO NA DESCRICAO DO TOPICO)
@@ -54,14 +77,48 @@ if ( ! function_exists( 'tutor_custom_topic_is_exam' ) ) {
             return $cache[ $topic_id ];
         }
 
-        $summary = get_post_field( 'post_content', $topic_id );
-        $summary = html_entity_decode( (string) $summary, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-        $summary = wp_strip_all_tags( $summary );
+        $summary = tutor_custom_topic_summary( $topic_id );
 
         // [ espacos? simulado espacos? ] -> case insensitive
         $pattern = '/\[\s*' . preg_quote( TUTOR_CUSTOM_EXAM_FLAG, '/' ) . '\s*\]/iu';
 
         $cache[ $topic_id ] = (bool) preg_match( $pattern, $summary );
+
+        return $cache[ $topic_id ];
+    }
+}
+
+/**
+ * Descricao do topico em texto puro (sem HTML nem entidades).
+ */
+if ( ! function_exists( 'tutor_custom_topic_summary' ) ) {
+    function tutor_custom_topic_summary( $topic_id ) {
+        $summary = get_post_field( 'post_content', (int) $topic_id );
+        $summary = html_entity_decode( (string) $summary, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+        return wp_strip_all_tags( $summary );
+    }
+}
+
+/**
+ * Verifica se a descricao do topico contem o marcador [orientacao]:
+ * o topico entra no menu agrupado por area, mas com layout de aula.
+ * Aceita [orientacao], [orientação], [orientacoes], [orientações]...
+ */
+if ( ! function_exists( 'tutor_custom_topic_is_grouped' ) ) {
+    function tutor_custom_topic_is_grouped( $topic_id ) {
+        static $cache = array();
+
+        $topic_id = (int) $topic_id;
+        if ( ! $topic_id ) {
+            return false;
+        }
+        if ( isset( $cache[ $topic_id ] ) ) {
+            return $cache[ $topic_id ];
+        }
+
+        $pattern = '/\[\s*orienta[cç](?:[aã]o|[oõ]es)\s*\]/iu';
+
+        $cache[ $topic_id ] = (bool) preg_match( $pattern, tutor_custom_topic_summary( $topic_id ) );
 
         return $cache[ $topic_id ];
     }
@@ -278,7 +335,6 @@ get_tutor_header( true );
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    border-bottom: 2px solid #000;
 }
 
 /* Header enxuto (modo aula) */
@@ -297,6 +353,7 @@ get_tutor_header( true );
 .header-left-block {
     display: flex;
     align-items: center;
+	width: 40%;
 }
 
 /* Botao de Toggle do Menu Lateral */
@@ -345,8 +402,8 @@ get_tutor_header( true );
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 35px;
-    height: 35px;
+    width: 2vw;
+    height: 2vw;
     background-color: #ffffff;
     color: #333;
     text-decoration: none;
@@ -377,7 +434,8 @@ get_tutor_header( true );
 .header-right-meta {
     display: flex;
     align-items: center;
-    gap: 40px;
+	justify-content: space-between;
+	width: 58%;
 }
 
 .student-info {
@@ -389,7 +447,7 @@ get_tutor_header( true );
 
 .student-name {
     display: block;
-    font-size: 18px;
+    font-size: 1.25rem;
     font-weight: 300;
 }
 
@@ -401,7 +459,7 @@ get_tutor_header( true );
 }
 
 .timer {
-    font-size: 44px;
+    font-size: 3rem;
     font-weight: bold;
     line-height: 1;
 }
@@ -415,8 +473,8 @@ get_tutor_header( true );
     background: rgba(255, 255, 255, 0.15);
     border: none;
     color: #ffffff;
-    width: 28px;
-    height: 28px;
+	width: 2.5vw;
+    height: 2.5vw;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
@@ -462,10 +520,10 @@ get_tutor_header( true );
     background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: #ffffff;
-    padding: 8px 14px;
+    padding: .5rem 1rem;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: .75rem;
     font-weight: bold;
     line-height: 1;
     transition: background 0.2s, border-color 0.2s;
@@ -685,28 +743,33 @@ get_tutor_header( true );
     background-color: #ffffff !important;
     color: #1a1e68 !important;
     border-radius: 20px !important;
-    padding: 10px 25px !important;
+    padding: .5rem .5rem !important;
     font-weight: bold !important;
     border: none !important;
+}
+
+.finish-btn-wrapper .tutor-btn span{
+	font-size: .75rem;
 }
 
 .nav-arrows {
     display: flex;
     gap: 10px;
+	align-items: center;
 }
 
 .arrow-btn {
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    width: 40px;
-    height: 40px;
+	width: 2vw;
+	height: 2vw;
     border: 2px solid #fff;
     border-radius: 50%;
     color: #fff;
     text-decoration: none;
     font-weight: bold;
-    font-size: 20px;
+    font-size: 1rem;
 }
 
 .arrow-btn.disabled {
@@ -727,7 +790,6 @@ get_tutor_header( true );
     width: 290px;
     background-color: #f4f6f9;
     border-right: 1px solid #e1e6eb;
-    padding: 10px;
     overflow-y: auto;
     transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
                 padding 0.3s cubic-bezier(0.16, 1, 0.3, 1),
@@ -747,29 +809,29 @@ get_tutor_header( true );
 
 .sidebar-title {
     font-size: 16px;
-    margin-bottom: 20px;
-    color: #1a1e68;
+    margin-bottom: 1px;
+    color: #ff7e00 !important;
     font-weight: bold;
     white-space: nowrap;
+    background: linear-gradient(45deg, #1E1763, #241d7a);
+    padding: 10px;
 }
 
 .grouped-menu-accordion {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 1px;
     min-width: 250px;
 }
 
 .menu-group {
-    border-radius: 6px;
     overflow: hidden;
-    border: 1px solid #e1e6eb;
-    background: #ffffff;
+    background: linear-gradient(45deg, #1E1763, #241d7a);
 }
 
 .menu-group-header {
     width: 100%;
-    background: #ffffff;
+    background: linear-gradient(45deg, #1E1763, #241d7a);
     border: none;
     padding: 12px 15px;
     text-align: left;
@@ -778,13 +840,9 @@ get_tutor_header( true );
     align-items: center;
     cursor: pointer;
     font-weight: bold;
-    color: #333;
+    color: #fff;
     transition: background 0.2s;
     gap: 10px;
-}
-
-.menu-group-header:hover {
-    background: #edf0f5;
 }
 
 .group-arrow {
@@ -947,11 +1005,10 @@ get_tutor_header( true );
 
 /* Paineis deslizantes */
 .slideout-panel {
-    --panel-width-px: calc(50vh * 0.85 * 16 / 9);
-    --panel-width-percent: calc((var(--panel-width-px) / 100vw) * 100%);
+    --panel-width: calc(50vh * 0.85 * 16 / 9);
     position: fixed;
-    right: calc(-1 * var(--panel-width-percent));
-    width: var(--panel-width-percent);
+    right: calc(-1 * var(--panel-width));
+    width: var(--panel-width);
     top: 25%;
     height: 50%;
     background-color: #ffffff;
@@ -1006,6 +1063,349 @@ get_tutor_header( true );
     aspect-ratio: 16 / 9;
 }
 
+/* ==========================================================================
+   GUIA DE INTEGRACAO (ONBOARDING TOUR)
+   ========================================================================== */
+.tool-btn.is-tour {
+    background: rgba(255, 204, 0, 0.18);
+    border-color: rgba(255, 204, 0, 0.6);
+}
+
+.tool-btn.is-tour:hover {
+    background: rgba(255, 204, 0, 0.32);
+    border-color: #ffcc00;
+}
+
+/* Modal de boas-vindas */
+.tour-welcome-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 14, 40, 0.65);
+    z-index: 100001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.tour-welcome-backdrop.is-open {
+    display: flex;
+}
+
+.tour-welcome {
+    width: 100%;
+    max-width: 460px;
+    background: #ffffff;
+    border-radius: 14px;
+    overflow: hidden;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    animation: tourPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tourPop {
+    0%   { opacity: 0; transform: scale(0.94) translateY(8px); }
+    100% { opacity: 1; transform: none; }
+}
+
+.tour-welcome-head {
+    background: linear-gradient(45deg, #1E1763, #241d7a);
+    color: #ffffff;
+    padding: 26px 24px 20px;
+}
+
+.tour-welcome-icon {
+    font-size: 36px;
+    line-height: 1;
+    margin-bottom: 10px;
+}
+
+.tour-welcome-head h3 {
+    margin: 0;
+    font-size: 20px;
+    color: #ffffff !important;
+}
+
+.tour-welcome-head span {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    color: #ff7e00;
+    font-weight: bold;
+}
+
+.tour-welcome-body {
+    padding: 20px 26px 8px;
+    color: #444;
+    font-size: 14.5px;
+    line-height: 1.6;
+}
+
+.tour-welcome-body p {
+    margin: 0 0 12px;
+}
+
+.tour-welcome-hint {
+    font-size: 13px;
+    color: #8a93a2;
+}
+
+.tour-welcome-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 6px 24px 24px;
+}
+
+.tour-btn-primary,
+.tour-btn-ghost {
+    border-radius: 20px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1.2;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.tour-btn-primary {
+    background: #0066ff;
+    border: 1px solid #0066ff;
+    color: #ffffff;
+}
+
+.tour-btn-primary:hover {
+    background: #0052cc;
+    border-color: #0052cc;
+}
+
+.tour-btn-ghost {
+    background: #ffffff;
+    border: 1px solid #c7d2e2;
+    color: #5a6478;
+}
+
+.tour-btn-ghost:hover {
+    border-color: #1a1e68;
+    color: #1a1e68;
+}
+
+.tour-btn-ghost:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* Camada do tour: escurece a tela e bloqueia cliques */
+.tour-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: none;
+}
+
+.tour-layer.is-active {
+    display: block;
+}
+
+/* Recorte iluminado sobre o elemento explicado */
+.tour-spotlight {
+    position: fixed;
+    border-radius: 10px;
+    box-shadow: 0 0 0 3px #ffcc00, 0 0 0 9999px rgba(10, 14, 40, 0.72);
+    pointer-events: none;
+    transition: top 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                left 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tour-spotlight.is-empty {
+    box-shadow: 0 0 0 9999px rgba(10, 14, 40, 0.72);
+}
+
+/* Tooltip */
+.tour-tooltip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 370px;
+    max-width: calc(100vw - 32px);
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    padding: 20px 20px 16px;
+    color: #333;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+}
+
+.tour-tooltip.is-visible {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+}
+
+.tour-tooltip-arrow {
+    display: none;
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    transform: rotate(45deg);
+}
+
+.tour-tooltip-arrow.is-bottom { display: block; top: -7px; }
+.tour-tooltip-arrow.is-top    { display: block; bottom: -7px; }
+.tour-tooltip-arrow.is-right  { display: block; left: -7px; }
+.tour-tooltip-arrow.is-left   { display: block; right: -7px; }
+
+.tour-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 24px;
+    line-height: 1;
+    color: #8a93a2;
+    cursor: pointer;
+}
+
+.tour-close:hover {
+    color: #1a1e68;
+}
+
+.tour-step-count {
+    display: block;
+    font-size: 11.5px;
+    font-weight: bold;
+    color: #0066ff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tour-tooltip h4.tour-title {
+    margin: 6px 28px 10px 0;
+    font-size: 17px;
+    line-height: 1.3;
+    color: #1a1e68 !important;
+}
+
+.tour-tooltip-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #444;
+    max-height: 48vh;
+    overflow-y: auto;
+}
+
+.tour-tooltip-body p {
+    margin: 0 0 9px;
+}
+
+.tour-tooltip-body p:last-child {
+    margin-bottom: 0;
+}
+
+.tour-list {
+    margin: 0 0 9px;
+    padding-left: 18px;
+}
+
+.tour-list li {
+    margin-bottom: 2px;
+}
+
+.tour-legend {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 7px;
+}
+
+.tour-legend li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+}
+
+.tour-chip {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    border: 1px solid #d5dbe5;
+}
+
+.tour-chip.is-white  { background: #ffffff; color: #333; }
+.tour-chip.is-yellow { background: #ffcc00; color: #000; border-color: #ffcc00; }
+.tour-chip.is-green  { background: #1cbd55; color: #fff; border-color: #1cbd55; }
+.tour-chip.is-blue   { background: #0066ff; color: #fff; border-color: #0066ff; }
+
+.tour-key {
+    display: inline-block;
+    padding: 0 6px;
+    border-radius: 4px;
+    background: #1a1e68;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 20px;
+}
+
+.tour-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.tour-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.tour-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    background: #d5dbe5;
+    transition: width 0.2s, background 0.2s;
+}
+
+.tour-dot.is-done {
+    background: #9bb8f0;
+}
+
+.tour-dot.is-active {
+    width: 16px;
+    background: #0066ff;
+}
+
+.tour-nav {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.tour-nav .tour-btn-primary,
+.tour-nav .tour-btn-ghost {
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
 /* Responsividade */
 @media (max-width: 992px) {
     .custom-course-main-wrapper {
@@ -1036,13 +1436,17 @@ get_tutor_header( true );
         padding: 15px;
     }
     .lesson-num-btn {
-        width: 30px !important;
-        height: 30px !important;
         font-size: 12px !important;
     }
     .timer {
         font-size: 30px;
     }
+}
+                                
+@media screen and (max-width: 1280px){
+	.header-actions{
+		flex-direction: column;
+	}
 }
 </style>
 
@@ -1122,6 +1526,13 @@ get_tutor_header( true );
 
                 <!-- Ferramentas da aula: Anexos / Anotacoes / Anotar -->
                 <div class="header-tools">
+                    <?php if ( $tour_has_button ) : ?>
+                        <button type="button" id="btn-start-tour" class="tool-btn is-tour" title="Ver o guia desta tela">
+                            <span class="tool-ico">&#129517;</span>
+                            <span class="tool-label">Guia</span>
+                        </button>
+                    <?php endif; ?>
+
                     <button type="button" class="tool-btn" data-open-panel="panel-attachments" title="Anexos da aula">
                         <span class="tool-ico">&#128206;</span>
                         <span class="tool-label">Anexos</span>
@@ -1142,11 +1553,11 @@ get_tutor_header( true );
                     </button>
                 </div>
 
-                <div class="finish-btn-wrapper">
-                    <?php tutor_lesson_mark_complete_html(); ?>
-                </div>
-
                 <div class="nav-arrows">
+                    <div class="finish-btn-wrapper">
+                    	<?php tutor_lesson_mark_complete_html(); ?>
+                	</div>
+                                
                     <?php if ( $previous_id ) : ?>
                         <a href="<?php echo esc_url( get_permalink( $previous_id ) ); ?>" class="arrow-btn btn-prev">&lt;</a>
                     <?php else : ?>
@@ -1181,14 +1592,16 @@ get_tutor_header( true );
                         $loop_topic_id = get_the_ID();
                         $topic_title   = get_the_title();
                         $topic_is_exam = tutor_custom_topic_is_exam( $loop_topic_id );
+                        // Simulados e orientacoes [orientacao] entram no menu agrupado por area
+                        $topic_in_area = $topic_is_exam || tutor_custom_topic_is_grouped( $loop_topic_id );
 
                         $topic_contents = tutor_utils()->get_contents_by_topic( $loop_topic_id );
                         if ( ! is_array( $topic_contents ) ) {
                             $topic_contents = array();
                         }
 
-                        if ( $topic_is_exam ) {
-                            // ---- MODO SIMULADO: agrupa por area, aponta para a 1a questao ----
+                        if ( $topic_in_area ) {
+                            // ---- SIMULADO / ORIENTACAO: agrupa por area, aponta para a 1a licao ----
                             $split     = tutor_custom_split_topic_title( $topic_title );
                             $area_name = $split['area'];
                             $text_name = $split['text'];
@@ -1198,6 +1611,16 @@ get_tutor_header( true );
                                 $first_id = tutor_custom_item_id( $topic_contents[0] );
                                 if ( $first_id ) {
                                     $first_lesson_url = get_permalink( $first_id );
+                                }
+                            }
+
+                            // Simulado concluido = todas as atividades do topico concluidas
+                            $topic_done = ! empty( $topic_contents );
+                            foreach ( $topic_contents as $item ) {
+                                $item_id = tutor_custom_item_id( $item );
+                                if ( $item_id && ! tutor_utils()->is_completed_lesson( $item_id, $user_id ) ) {
+                                    $topic_done = false;
+                                    break;
                                 }
                             }
 
@@ -1217,7 +1640,7 @@ get_tutor_header( true );
                                 'label'  => $text_name,
                                 'url'    => $first_lesson_url,
                                 'active' => ( (int) $loop_topic_id === (int) $topic_id ),
-                                'done'   => false,
+                                'done'   => $topic_done,
                             );
 
                             if ( (int) $loop_topic_id === (int) $topic_id ) {
@@ -1324,7 +1747,7 @@ get_tutor_header( true );
      ========================================================================== -->
 <div class="slideout-triggers-container">
     <?php if ( ! empty( $tutorial_content ) ) : ?>
-        <button class="slideout-tab-btn" data-panel="panel-tutorial">Tutorial</button>
+        <button class="slideout-tab-btn" data-panel="panel-tutorial">Dica</button>
     <?php endif; ?>
     <?php if ( ! empty( $resolution_content ) ) : ?>
         <button class="slideout-tab-btn" data-panel="panel-resolution">Resolução</button>
@@ -1436,6 +1859,53 @@ get_tutor_header( true );
 </div>
 
 <!-- ==========================================================================
+     GUIA DE INTEGRACAO (ONBOARDING TOUR)
+     ========================================================================== -->
+<?php if ( $tour_is_auto ) : ?>
+<!-- Modal de boas-vindas: pergunta se o aluno quer ver o guia -->
+<div id="tour-welcome" class="tour-welcome-backdrop" role="dialog" aria-modal="true" aria-labelledby="tour-welcome-title">
+    <div class="tour-welcome">
+        <div class="tour-welcome-head">
+            <div class="tour-welcome-icon">&#129517;</div>
+            <h3 id="tour-welcome-title">Olá, <?php echo esc_html( $current_user->display_name ); ?>!</h3>
+            <span>Bem-vindo(a) ao preparatório TEAP</span>
+        </div>
+        <div class="tour-welcome-body">
+            <p>Preparamos um tour rápido mostrando cada parte desta tela: navegação, questões, cronômetro, anotações, resolução e dicas. Leva menos de 2 minutos.</p>
+            <?php if ( $tour_has_button ) : ?>
+                <p class="tour-welcome-hint">Você pode rever o guia a qualquer momento pelo botão <strong>Guia</strong> no topo da página.</p>
+            <?php endif; ?>
+        </div>
+        <div class="tour-welcome-actions">
+            <button type="button" class="tour-btn-ghost js-tour-skip">Pular</button>
+            <button type="button" class="tour-btn-primary js-tour-start">Ver tutorial</button>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if ( $tour_enabled ) : ?>
+<!-- Camada do tour: overlay + recorte + tooltip -->
+<div id="tour-layer" class="tour-layer" aria-hidden="true">
+    <div class="tour-spotlight"></div>
+    <div class="tour-tooltip" role="dialog" aria-live="polite" aria-labelledby="tour-title">
+        <span class="tour-tooltip-arrow"></span>
+        <button type="button" class="tour-close" title="Fechar guia" aria-label="Fechar guia">&times;</button>
+        <span class="tour-step-count"></span>
+        <h4 id="tour-title" class="tour-title"></h4>
+        <div class="tour-tooltip-body"></div>
+        <div class="tour-footer">
+            <div class="tour-dots"></div>
+            <div class="tour-nav">
+                <button type="button" class="tour-btn-ghost tour-prev">Anterior</button>
+                <button type="button" class="tour-btn-primary tour-next">Próximo</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
+<!-- ==========================================================================
      6. SCRIPT JAVASCRIPT
      ========================================================================== -->
 <script>
@@ -1447,11 +1917,31 @@ document.addEventListener('DOMContentLoaded', function() {
     var currentLessonId = container.getAttribute('data-current-lesson-id');
     var isExamMode      = container.getAttribute('data-exam-mode') === '1';
 
+    // Configuracao do guia (definida antes do cronometro: se o modal de
+    // boas-vindas for aparecer, o cronometro ja nasce segurado)
+    var tourConfig = <?php echo wp_json_encode( array(
+        'autoStart'  => $tour_is_auto,
+        'showOnce'   => (bool) $tour_auto_show_once,
+        'storageKey' => 'teap_tour_seen_' . $content_id,
+    ) ); ?>;
+
+    var tourWillPrompt = false;
+    if (tourConfig.autoStart && document.getElementById('tour-welcome')) {
+        var tourSeenBefore = false;
+        try { tourSeenBefore = localStorage.getItem(tourConfig.storageKey) === '1'; } catch (e) {}
+        tourWillPrompt = !tourConfig.showOnce || !tourSeenBefore;
+    }
+
+    // Controle do cronometro usado pelo guia (sem efeito fora do modo simulado)
+    var examTimer = { hold: function() {}, release: function() {} };
+
     // ==========================================
     // A. CRONOMETRO (SOMENTE NO MODO SIMULADO)
     // ==========================================
     var timerKey = 'exam_end_time_topic_' + topicId;
     var pauseKey = 'exam_paused_time_topic_' + topicId;
+    var holdKey  = 'exam_tour_hold_topic_' + topicId; // pausa feita pelo guia (nao pelo aluno)
+    var seenKey  = 'exam_last_seen_topic_' + topicId; // ultima vez que uma pagina deste simulado esteve aberta
 
     if (isExamMode) {
         var durationMinutes = 90;
@@ -1468,6 +1958,7 @@ document.addEventListener('DOMContentLoaded', function() {
             endTime = Date.now() + (durationMinutes * 60 * 1000);
             localStorage.setItem(timerKey, endTime);
             localStorage.removeItem(pauseKey);
+            localStorage.removeItem(holdKey);
             pausedOffset = null;
 
             if (btnPause) {
@@ -1479,9 +1970,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        function markSeen() {
+            localStorage.setItem(seenKey, Date.now());
+        }
+
         function updateTimer() {
             var remainingTime;
 
+            markSeen();
             pausedOffset = localStorage.getItem(pauseKey);
 
             if (pausedOffset) {
@@ -1548,9 +2044,69 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Primeira visita ao topico (ou chaves limpas): inicia a contagem
+        // Segura o cronometro enquanto o guia estiver aberto. Se o aluno ja
+        // tinha pausado por conta propria, nada muda (e nada e retomado depois).
+        function holdTimer() {
+            if (localStorage.getItem(holdKey) || localStorage.getItem(pauseKey)) return;
+
+            var secondsLeft = Math.floor((endTime - Date.now()) / 1000);
+            if (secondsLeft <= 0) return;
+
+            localStorage.setItem(pauseKey, secondsLeft);
+            localStorage.setItem(holdKey, '1');
+            updateTimer();
+        }
+
+        // Retoma o cronometro somente se quem pausou foi o guia
+        function releaseTimer() {
+            if (!localStorage.getItem(holdKey)) return;
+            localStorage.removeItem(holdKey);
+
+            var heldSeconds = localStorage.getItem(pauseKey);
+            if (heldSeconds) {
+                endTime = Date.now() + (parseInt(heldSeconds, 10) * 1000);
+                localStorage.setItem(timerKey, endTime);
+                localStorage.removeItem(pauseKey);
+            }
+            updateTimer();
+        }
+
+        examTimer = { hold: holdTimer, release: releaseTimer };
+
+        // O tempo so corre enquanto o aluno esta neste simulado: ao voltar
+        // (de outro simulado, de uma aula avulsa ou com o navegador fechado),
+        // devolve o intervalo em que nenhuma pagina dele esteve aberta.
+        var lastSeen = parseInt(localStorage.getItem(seenKey) || '0', 10);
+        if (endTime && lastSeen && endTime > lastSeen && !pausedOffset) {
+            var awayMs = Date.now() - lastSeen;
+            if (awayMs > 0) {
+                endTime += awayMs;
+                localStorage.setItem(timerKey, endTime);
+            }
+        }
+
+        // Registra a saida da pagina para o calculo acima
+        window.addEventListener('pagehide', markSeen);
+        document.addEventListener('visibilitychange', markSeen);
+
+        // Primeira visita ao topico (ou chaves limpas): inicia a contagem.
+        // Com o modal do guia, ja comeca segurado nos 90:00 completos.
         if (!endTime && !pausedOffset) {
-            resetTimer();
+            if (tourWillPrompt) {
+                localStorage.setItem(pauseKey, durationMinutes * 60);
+                localStorage.setItem(holdKey, '1');
+            } else {
+                resetTimer();
+            }
+        }
+
+        if (tourWillPrompt) {
+            // Modal de boas-vindas vai abrir: o tempo so corre depois de
+            // "Pular" ou de concluir o guia
+            holdTimer();
+        } else {
+            // Sobra de um guia fechado sem concluir (ex.: aba fechada no meio)
+            releaseTimer();
         }
 
         updateTimer();
@@ -1563,6 +2119,8 @@ document.addEventListener('DOMContentLoaded', function() {
         finishBtn.addEventListener('click', function() {
             localStorage.removeItem(timerKey);
             localStorage.removeItem(pauseKey);
+            localStorage.removeItem(holdKey);
+            localStorage.removeItem(seenKey);
         });
     }
 
@@ -1866,24 +2424,491 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function bindH5PEvents() {
-        if (window.H5P && window.H5P.externalDispatcher) {
-            window.H5P.externalDispatcher.on('xAPI', function(event) {
-                var statement = (event.data && event.data.statement) ? event.data.statement : null;
-                if (statement && statement.verb) {
-                    var verbId = statement.verb.id || '';
-                    var verbDisplay = (statement.verb.display && statement.verb.display['en-US']) ? statement.verb.display['en-US'] : '';
+    // O H5P roda dentro de um iframe (.new-h5p-iframe), entao o
+    // window.H5P da pagina nao existe: procuramos o H5P em cada iframe
+    // (inclusive iframes aninhados) e escutamos o xAPI de la.
+    var H5P_IFRAME_SELECTOR = '.new-h5p-iframe, iframe.h5p-iframe, iframe[src*="h5p"]';
 
-                    if (verbId.indexOf('/interacted') !== -1 || verbDisplay === 'interacted') {
-                        markCurrentLessonInProgress();
-                    }
-                }
-            });
-        } else {
-            setTimeout(bindH5PEvents, 1000);
+    function onH5PStatement(event) {
+        var statement = (event && event.data && event.data.statement) ? event.data.statement : null;
+        if (!statement || !statement.verb) return;
+
+        var verbId = statement.verb.id || '';
+        var verbDisplay = (statement.verb.display && statement.verb.display['en-US']) ? statement.verb.display['en-US'] : '';
+
+        if (verbId.indexOf('/interacted') !== -1 || verbDisplay === 'interacted') {
+            markCurrentLessonInProgress();
         }
     }
-    bindH5PEvents();
+
+    // Liga o listener no H5P de uma janela. Retorna false se a janela
+    // for de outro dominio (sem acesso) ou se o H5P ainda nao carregou.
+    function bindH5PInWindow(win) {
+        try {
+            var dispatcher = win && win.H5P && win.H5P.externalDispatcher;
+            if (!dispatcher) return false;
+            if (!dispatcher.__teapTracked) {
+                dispatcher.__teapTracked = true;
+                dispatcher.on('xAPI', onH5PStatement);
+            }
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // Percorre a pagina e os iframes acessiveis procurando o H5P
+    function scanH5PFrames(doc, depth) {
+        var found = false;
+        var frames;
+        try {
+            frames = doc.querySelectorAll('iframe');
+        } catch (e) {
+            return false;
+        }
+
+        Array.prototype.forEach.call(frames, function(frame) {
+            var win = frame.contentWindow;
+            var isH5PFrame = frame.matches(H5P_IFRAME_SELECTOR);
+
+            if (bindH5PInWindow(win)) {
+                found = true;
+                frame.setAttribute('data-teap-h5p', 'tracked');
+                return;
+            }
+
+            var innerDoc = null;
+            try { innerDoc = frame.contentDocument; } catch (e) {}
+
+            if (innerDoc) {
+                if (depth < 3 && scanH5PFrames(innerDoc, depth + 1)) {
+                    found = true;
+                    frame.setAttribute('data-teap-h5p', 'tracked');
+                }
+            } else if (isH5PFrame) {
+                // Iframe H5P de outro dominio: usa o clique como sinal
+                frame.setAttribute('data-teap-h5p', 'click');
+            }
+        });
+
+        return found || bindH5PInWindow(doc.defaultView);
+    }
+
+    // O H5P carrega depois da pagina: tenta por ~30s e de novo a cada
+    // iframe que terminar de carregar (o evento load nao sobe, por isso
+    // a escuta e na fase de captura)
+    var h5pScanTries = 0;
+    var h5pScanInterval = setInterval(function() {
+        h5pScanTries++;
+        if (scanH5PFrames(document, 0) || h5pScanTries >= 30) {
+            clearInterval(h5pScanInterval);
+        }
+    }, 1000);
+    scanH5PFrames(document, 0);
+
+    document.addEventListener('load', function(e) {
+        if (e.target && e.target.tagName === 'IFRAME') {
+            setTimeout(function() { scanH5PFrames(document, 0); }, 300);
+        }
+    }, true);
+
+    // Plano B para iframe H5P de outro dominio (sem acesso ao xAPI):
+    // clicar dentro dele tira o foco da pagina e o iframe vira o elemento ativo
+    window.addEventListener('blur', function() {
+        setTimeout(function() {
+            var active = document.activeElement;
+            if (active && active.tagName === 'IFRAME' && active.getAttribute('data-teap-h5p') === 'click') {
+                markCurrentLessonInProgress();
+            }
+        }, 0);
+    });
+
+    // ==========================================
+    // F. GUIA DE INTEGRACAO (ONBOARDING TOUR)
+    // ==========================================
+    var tourLayer   = document.getElementById('tour-layer');
+    var tourWelcome = document.getElementById('tour-welcome');
+
+    if (tourLayer) {
+        var tourSpot   = tourLayer.querySelector('.tour-spotlight');
+        var tourTip    = tourLayer.querySelector('.tour-tooltip');
+        var tourArrow  = tourLayer.querySelector('.tour-tooltip-arrow');
+        var tourCount  = tourLayer.querySelector('.tour-step-count');
+        var tourTitle  = tourLayer.querySelector('.tour-title');
+        var tourBody   = tourLayer.querySelector('.tour-tooltip-body');
+        var tourDots   = tourLayer.querySelector('.tour-dots');
+        var tourPrev   = tourLayer.querySelector('.tour-prev');
+        var tourNext   = tourLayer.querySelector('.tour-next');
+        var btnTour    = document.getElementById('btn-start-tour');
+        var tourActive = [];
+        var tourIndex  = -1;
+        var tourTimer  = null;
+        var sidebarWasClosed = false;
+
+        function openSidebarForTour() {
+            if (mainWrapper) mainWrapper.classList.remove('sidebar-closed');
+        }
+
+        function restoreSidebar() {
+            if (mainWrapper && sidebarWasClosed) mainWrapper.classList.add('sidebar-closed');
+        }
+
+        // Cada passo: target = seletores destacados juntos (passos cujo
+        // elemento nao existe nesta aula sao pulados automaticamente).
+        var tourSteps = [
+            {
+                target: ['#btn-toggle-sidebar', '.custom-course-sidebar'],
+                title: 'Menu do curso',
+                placement: 'right',
+                delay: 380,
+                onEnter: openSidebarForTour,
+                onLeave: restoreSidebar,
+                body:
+                    '<p>Aqui está todo o conteúdo do preparatório, dividido por área específica:</p>' +
+                    '<ul class="tour-list">' +
+                        '<li>Biológicas / Saúde</li>' +
+                        '<li>Exatas / Tecnológicas</li>' +
+                        '<li>Humanas / Sociais</li>' +
+                        '<li>Agrárias / Veterinárias</li>' +
+                    '</ul>' +
+                    '<p>Cada área possui <strong>5 simulados com o layout o mais próximo possível do exame real</strong>, para você fazer o teste com total segurança.</p>' +
+                    '<p>No dia do exame, você escolhe a área que domina, mas aqui trabalhamos <strong>todas</strong>: é muito comum cair textos da sua área com detalhes de outras, e isso fortalece seu conhecimento prévio.</p>'
+            },
+            {
+                target: ['.lessons-grid-wrapper'],
+                title: 'Questões do simulado',
+                body:
+                    '<p>Todo simulado é composto por <strong>20 questões</strong>, listadas aqui. Clique no número para ir direto à questão e acompanhe seu progresso pelas cores:</p>' +
+                    '<ul class="tour-legend">' +
+                        '<li><span class="tour-chip is-white">1</span> Não vista</li>' +
+                        '<li><span class="tour-chip is-yellow">2</span> Em andamento</li>' +
+                        '<li><span class="tour-chip is-green">3</span> Concluída</li>' +
+                        '<li><span class="tour-chip is-blue">4</span> Questão em que você está agora</li>' +
+                    '</ul>'
+            },
+            {
+                target: ['.student-info'],
+                title: 'Nome e cronômetro',
+                body:
+                    '<p>No cabeçalho da prova, mostramos seu nome e o cronômetro com o tempo real do exame: <strong>90 minutos</strong>.</p>' +
+                    '<p>Na prova, o tempo é contínuo e, ao zerar, ela se encerra automaticamente. Aqui ele <strong>não fecha</strong> o simulado: serve para você se programar e ter noção do seu aproveitamento.</p>' +
+                    '<p>A contagem é <strong>por simulado</strong> e continua correndo enquanto você passa de uma questão para outra. Use <span class="tour-key">&#10074;&#10074;</span> <strong>para pausar</strong>, caso você queira, e <span class="tour-key">&#10227;</span> <strong>para reiniciar</strong> caso queira refazer o simulado.</p>'
+            },
+            {
+                target: ['[data-open-panel="panel-attachments"]'],
+                title: 'Anexos',
+                body:
+                    '<p>Quando a aula ou o vídeo citar um artigo, documento ou material de apoio, ele aparece aqui para você fazer o download.</p>' +
+                    '<p>Repare no <strong>número</strong> ao lado do botão: ele indica quantos arquivos existem. Se não tiver o número, a aula não possui anexos.</p>'
+            },
+            {
+                target: ['[data-open-panel="panel-notes"]'],
+                title: 'Anotações',
+                body: '<p>Lista com todas as anotações que você fez <strong>nesta aula</strong>. O número ao lado mostra quantas existem.</p>'
+            },
+            {
+                target: ['#btn-take-note'],
+                title: 'Anotar',
+                body: '<p>Crie anotações sobre o que quiser nesta aula. Elas ficam salvas e aparecem em <strong>Anotações</strong> sempre que você voltar aqui para revisar.</p>'
+            },
+            {
+                target: ['.finish-btn-wrapper'],
+                title: 'Marcar como concluído',
+                body:
+                    '<p>Marque o conteúdo como concluído para não se perder no seu progresso.</p>' +
+                    '<p><strong>Importante:</strong> o certificado de conclusão só é liberado quando <strong>todas as aulas</strong> estiverem marcadas como concluídas, ou seja, quando a plataforma registrar 100% do conteúdo.</p>'
+            },
+            {
+                target: ['.nav-arrows .arrow-btn'],
+                title: 'Navegação',
+                body: '<p>Use as setas para navegar entre as aulas e as questões do simulado: <span class="tour-key">&lt;</span> <strong>volta para a anterior</strong> e <span class="tour-key">&gt;</span> <strong>avança para a próxima.</strong></p>'
+            },
+            {
+                target: ['.custom-course-body:not(.is-single-pane)'],
+                title: 'Duas colunas, como na prova',
+                body: '<p>Assim como na prova, o simulado é dividido em <strong>duas colunas com rolagem independente</strong>: você rola o texto sem perder a questão de vista, e vice-versa.</p>'
+            },
+            {
+                target: ['.custom-course-body:not(.is-single-pane) .pane-left'],
+                title: 'Coluna da esquerda: o texto',
+                placement: 'right',
+                body: '<p>Aqui fica o <strong>texto</strong> relacionado às questões. Como no teste, a <strong>primeira e a última questão</strong> trazem o texto completo; as demais mostram apenas o trecho necessário para responder.</p>'
+            },
+            {
+                target: ['.pane-right'],
+                title: 'Coluna da direita: a questão',
+                placement: 'left',
+                body: '<p>Aqui fica a <strong>questão</strong> em si: o enunciado e as <strong>4 alternativas</strong> de múltipla escolha.</p>'
+            },
+            {
+                target: ['.slideout-tab-btn[data-panel="panel-resolution"]'],
+                title: 'Resolução',
+                placement: 'left',
+                body: '<p>Abre um <strong>vídeo explicativo</strong> com a resolução da questão em que você está.</p>'
+            },
+            {
+                target: ['.slideout-tab-btn[data-panel="panel-tutorial"]'],
+                title: 'Dica',
+                placement: 'left',
+                body: '<p>Abre um <strong>vídeo com dicas</strong> sobre quais habilidades a questão está exigindo, como elas funcionam e como melhorá-las.</p>'
+            },
+            {
+                target: btnTour ? ['#btn-start-tour'] : null,
+                title: 'Tudo pronto!',
+                body: btnTour
+                    ? '<p>Bons estudos! Sempre que precisar, clique em <strong>Guia</strong> para rever este tutorial.</p>'
+                    : '<p>Bons estudos e boa prova!</p>'
+            }
+        ];
+
+        // Retangulo que envolve todos os elementos visiveis do passo
+        function tourRect(selectors) {
+            var rect = null;
+            selectors.forEach(function(sel) {
+                document.querySelectorAll(sel).forEach(function(el) {
+                    var r = el.getBoundingClientRect();
+                    if (!r.width || !r.height) return;
+                    if (!rect) {
+                        rect = { top: r.top, left: r.left, right: r.right, bottom: r.bottom };
+                    } else {
+                        rect.top    = Math.min(rect.top, r.top);
+                        rect.left   = Math.min(rect.left, r.left);
+                        rect.right  = Math.max(rect.right, r.right);
+                        rect.bottom = Math.max(rect.bottom, r.bottom);
+                    }
+                });
+            });
+            if (!rect) return null;
+
+            rect.top    = Math.max(rect.top, 0);
+            rect.left   = Math.max(rect.left, 0);
+            rect.right  = Math.min(rect.right, window.innerWidth);
+            rect.bottom = Math.min(rect.bottom, window.innerHeight);
+            return rect;
+        }
+
+        function clamp(value, min, max) {
+            return Math.min(Math.max(value, min), Math.max(min, max));
+        }
+
+        function placeTour(step) {
+            var vw = window.innerWidth, vh = window.innerHeight;
+            var m = 16, gap = 16, pad = 6;
+            var r = step.target ? tourRect(step.target) : null;
+
+            if (r) {
+                r = { top: r.top - pad, left: r.left - pad, right: r.right + pad, bottom: r.bottom + pad };
+                r.width  = r.right - r.left;
+                r.height = r.bottom - r.top;
+                tourSpot.classList.remove('is-empty');
+                tourSpot.style.top    = r.top + 'px';
+                tourSpot.style.left   = r.left + 'px';
+                tourSpot.style.width  = r.width + 'px';
+                tourSpot.style.height = r.height + 'px';
+            } else {
+                tourSpot.classList.add('is-empty');
+                tourSpot.style.top    = (vh / 2) + 'px';
+                tourSpot.style.left   = (vw / 2) + 'px';
+                tourSpot.style.width  = '0px';
+                tourSpot.style.height = '0px';
+            }
+
+            var tw = tourTip.offsetWidth, th = tourTip.offsetHeight;
+            var place = 'center';
+
+            if (r) {
+                var fits = {
+                    bottom: vh - r.bottom >= th + gap + m,
+                    top:    r.top >= th + gap + m,
+                    right:  vw - r.right >= tw + gap + m,
+                    left:   r.left >= tw + gap + m
+                };
+                var order = (step.placement ? [step.placement] : []).concat(['bottom', 'top', 'right', 'left']);
+                for (var i = 0; i < order.length; i++) {
+                    if (fits[order[i]]) { place = order[i]; break; }
+                }
+            }
+
+            var top, left;
+            if (place === 'bottom') {
+                top  = r.bottom + gap;
+                left = r.left + r.width / 2 - tw / 2;
+            } else if (place === 'top') {
+                top  = r.top - gap - th;
+                left = r.left + r.width / 2 - tw / 2;
+            } else if (place === 'right') {
+                left = r.right + gap;
+                top  = r.top + r.height / 2 - th / 2;
+            } else if (place === 'left') {
+                left = r.left - gap - tw;
+                top  = r.top + r.height / 2 - th / 2;
+            } else {
+                // Sem espaco ao redor (ex.: colunas inteiras): tooltip sobre o centro
+                left = (r ? r.left + r.width / 2 : vw / 2) - tw / 2;
+                top  = (r ? r.top + r.height / 2 : vh / 2) - th / 2;
+            }
+
+            left = clamp(left, m, vw - tw - m);
+            top  = clamp(top, m, vh - th - m);
+            tourTip.style.left = left + 'px';
+            tourTip.style.top  = top + 'px';
+
+            tourArrow.className = 'tour-tooltip-arrow' + (place === 'center' ? '' : ' is-' + place);
+            tourArrow.style.left = '';
+            tourArrow.style.top  = '';
+            if (place === 'bottom' || place === 'top') {
+                tourArrow.style.left = clamp(r.left + r.width / 2 - left - 7, 16, tw - 30) + 'px';
+            } else if (place === 'left' || place === 'right') {
+                tourArrow.style.top = clamp(r.top + r.height / 2 - top - 7, 16, th - 30) + 'px';
+            }
+        }
+
+        function showTourStep(index) {
+            var current = tourActive[tourIndex];
+            if (current && current.onLeave && index !== tourIndex) current.onLeave();
+
+            tourIndex = index;
+            var step  = tourActive[index];
+            var total = tourActive.length;
+
+            tourTip.classList.remove('is-visible');
+            if (step.onEnter) step.onEnter();
+
+            tourCount.textContent = 'Passo ' + (index + 1) + ' de ' + total;
+            tourTitle.textContent = step.title;
+            tourBody.innerHTML    = step.body;
+            tourBody.scrollTop    = 0;
+            tourPrev.disabled     = index === 0;
+            tourNext.textContent  = index === total - 1 ? 'Concluir' : 'Próximo';
+
+            tourDots.innerHTML = '';
+            for (var i = 0; i < total; i++) {
+                var dot = document.createElement('span');
+                dot.className = 'tour-dot' + (i === index ? ' is-active' : (i < index ? ' is-done' : ''));
+                tourDots.appendChild(dot);
+            }
+
+            clearTimeout(tourTimer);
+            tourTimer = setTimeout(function() {
+                placeTour(step);
+                tourTip.classList.add('is-visible');
+                tourNext.focus();
+            }, step.delay || 200);
+        }
+
+        function markTourSeen() {
+            try { localStorage.setItem(tourConfig.storageKey, '1'); } catch (e) {}
+        }
+
+        function closeTourWelcome() {
+            if (tourWelcome) tourWelcome.classList.remove('is-open');
+        }
+
+        // Fechar o modal com "Pular" (ou Esc) libera o cronometro
+        function skipTourWelcome() {
+            closeTourWelcome();
+            markTourSeen();
+            examTimer.release();
+        }
+
+        function startTour() {
+            examTimer.hold();
+            closeTourWelcome();
+            closeNoteModal();
+            panels.forEach(function(p) {
+                if (p.classList.contains('is-open')) {
+                    p.classList.remove('is-open');
+                    stopVideosInPanel(p);
+                }
+            });
+
+            sidebarWasClosed = mainWrapper ? mainWrapper.classList.contains('sidebar-closed') : false;
+            tourActive = tourSteps.filter(function(step) {
+                return !step.target || tourRect(step.target);
+            });
+            if (!tourActive.length) {
+                examTimer.release();
+                return;
+            }
+
+            tourIndex = -1;
+            tourLayer.classList.add('is-active');
+            tourLayer.setAttribute('aria-hidden', 'false');
+            showTourStep(0);
+        }
+
+        function endTour() {
+            var current = tourActive[tourIndex];
+            if (current && current.onLeave) current.onLeave();
+
+            clearTimeout(tourTimer);
+            tourTip.classList.remove('is-visible');
+            tourLayer.classList.remove('is-active');
+            tourLayer.setAttribute('aria-hidden', 'true');
+            tourIndex = -1;
+            markTourSeen();
+            examTimer.release();
+            if (btnTour) btnTour.focus();
+        }
+
+        function nextTourStep() {
+            if (tourIndex < tourActive.length - 1) {
+                showTourStep(tourIndex + 1);
+            } else {
+                endTour();
+            }
+        }
+
+        function prevTourStep() {
+            if (tourIndex > 0) showTourStep(tourIndex - 1);
+        }
+
+        tourNext.addEventListener('click', nextTourStep);
+        tourPrev.addEventListener('click', prevTourStep);
+        tourLayer.querySelector('.tour-close').addEventListener('click', endTour);
+
+        if (btnTour) {
+            btnTour.addEventListener('click', function(e) {
+                e.stopPropagation();
+                startTour();
+            });
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (tourWelcome && tourWelcome.classList.contains('is-open') && e.key === 'Escape') {
+                skipTourWelcome();
+                return;
+            }
+            if (tourIndex < 0) return;
+
+            if (e.key === 'Escape') {
+                endTour();
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                nextTourStep();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                prevTourStep();
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            if (tourIndex >= 0) placeTour(tourActive[tourIndex]);
+        });
+
+        // Modal de boas-vindas (somente nas aulas configuradas)
+        if (tourWelcome) {
+            tourWelcome.querySelector('.js-tour-start').addEventListener('click', startTour);
+            tourWelcome.querySelector('.js-tour-skip').addEventListener('click', skipTourWelcome);
+
+            if (tourWillPrompt) {
+                setTimeout(function() {
+                    tourWelcome.classList.add('is-open');
+                    tourWelcome.querySelector('.js-tour-start').focus();
+                }, 600);
+            }
+        }
+    }
 });
 </script>
 
