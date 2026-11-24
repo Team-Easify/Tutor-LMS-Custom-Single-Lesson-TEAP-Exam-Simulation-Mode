@@ -19,6 +19,7 @@ Ambos os modos compartilham o mesmo header, o mesmo menu lateral, as mesmas ferr
 * **Vídeo da Aula:** o vídeo configurado na aba *Vídeo* do editor do Tutor é renderizado no topo da coluna esquerda, em 16:9. Usa o player nativo do Tutor e, se ele não responder, recorre a um embed via oEmbed ou a uma tag `<video>`.
 * **Abas Deslizantes Laterais:** gavetas de acesso rápido para **Dica** e **Resolução**, renderizadas apenas quando os respectivos delimitadores existem no conteúdo.
 * **Pausa Automática de Mídia:** ao fechar uma gaveta, o script pausa vídeos nativos (`<video>`) e reinicia `iframe`s incorporados (YouTube/Vimeo), evitando áudio tocando em segundo plano.
+* **Painel:** botão no header que leva ao dashboard do aluno no Tutor LMS (`tutor_dashboard_url()`; se a função não existir, usa `/dashboard/`).
 * **Anexos:** painel lateral que lista os arquivos da aba *Anexos* da aula, com nome, tamanho e download direto. O botão exibe um badge com a contagem.
 * **Anotações:** painel lateral com as anotações do aluno naquela aula, cada uma com data e opção de excluir.
 * **Anotar:** modal ancorado no canto superior direito para escrever uma anotação. Salva por AJAX, sem recarregar a página, e atualiza a lista e o badge em tempo real.
@@ -87,7 +88,7 @@ Os marcadores controlam o modo da lição **e** como o tópico aparece no menu l
 |---|---|---|---|
 | Header | Grade de questões + cronômetro | Título da aula | Título da aula |
 | Menu lateral | Agrupado por área | Agrupado por área | Tópico próprio, listando suas aulas |
-| Botões de ação | Guia, Anexos, Anotações, Anotar, Concluir, navegação | Idênticos | Idênticos |
+| Botões de ação | Painel, Guia, Anexos, Anotações, Anotar, Concluir, navegação | Idênticos | Idênticos |
 | Split `<!--split-->` | Funciona | Funciona | Funciona |
 
 * **`[simulado]`** — para os tópicos de prova.
@@ -214,7 +215,7 @@ $tour_button_exclude_ids = array( 77136, 72713 );
 
 // true  = o modal automático aparece só na 1ª visita do aluno a cada aula
 // false = o modal aparece em toda visita
-$tour_auto_show_once = false;
+$tour_auto_show_once = true;
 ```
 
 * **Modal de boas-vindas:** só nas aulas de `$tour_auto_lesson_ids`. Pergunta se o aluno quer **Ver tutorial** ou **Pular**.

@@ -48,7 +48,7 @@ $tour_button_exclude_ids = array( 77136,72713,72708,72709,72710,72711,72712,1057
 // true  = o modal automatico aparece so na 1a visita do aluno a cada aula
 //         configurada (fica salvo no navegador apos "Pular" ou concluir)
 // false = o modal aparece em toda visita
-$tour_auto_show_once = false;
+$tour_auto_show_once = true;
 
 $tour_is_auto    = in_array( (int) $content_id, array_map( 'intval', $tour_auto_lesson_ids ), true );
 $tour_has_button = ! in_array( (int) $content_id, array_map( 'intval', $tour_button_exclude_ids ), true );
@@ -309,6 +309,11 @@ if ( $is_exam_mode ) {
     ) );
 }
 
+// Link do botao "Painel": dashboard do aluno no Tutor LMS
+$dashboard_url = method_exists( tutor_utils(), 'tutor_dashboard_url' )
+    ? tutor_utils()->tutor_dashboard_url()
+    : home_url( '/dashboard/' );
+
 get_tutor_header( true );
 ?>
 
@@ -532,6 +537,14 @@ get_tutor_header( true );
 .tool-btn:hover {
     background: rgba(255, 255, 255, 0.3);
     border-color: #ffffff;
+}
+
+/* Botao-link (Painel): mesmo visual dos botoes */
+a.tool-btn,
+a.tool-btn:hover,
+a.tool-btn:focus {
+    color: #ffffff;
+    text-decoration: none;
 }
 
 .tool-btn.is-primary {
@@ -1775,8 +1788,13 @@ get_tutor_header( true );
 
             <div class="header-actions">
 
-                <!-- Ferramentas da aula: Anexos / Anotacoes / Anotar -->
+                <!-- Ferramentas da aula: Painel / Guia / Anexos / Anotacoes / Anotar -->
                 <div class="header-tools">
+                    <a href="<?php echo esc_url( $dashboard_url ); ?>" class="tool-btn" title="Ir para o meu painel">
+                        <span class="tool-ico">&#127968;</span>
+                        <span class="tool-label">Painel</span>
+                    </a>
+
                     <?php if ( $tour_has_button ) : ?>
                         <button type="button" id="btn-start-tour" class="tool-btn is-tour" title="Ver o guia desta tela">
                             <span class="tool-ico">&#129517;</span>
