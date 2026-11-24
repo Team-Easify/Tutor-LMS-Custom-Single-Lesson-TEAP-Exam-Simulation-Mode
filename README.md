@@ -198,7 +198,7 @@ exam_last_seen_topic_{topic_id}    última vez que uma página do simulado estev
 
 ## 🧭 Guia de Integração (Onboarding Tour)
 
-Tour com fundo escurecido, destaque em volta de cada elemento e tooltip explicativo. Mostra, em ordem: Menu (o menu lateral abre sozinho), Questões, Nome e cronômetro, Anexos, Anotações, Anotar, Marcar como concluído, setas de navegação, as duas colunas, coluna da esquerda, coluna da direita, Resolução e Dica.
+Tour com fundo escurecido, destaque em volta de cada elemento e tooltip explicativo. Mostra, em ordem: Menu (o menu lateral abre sozinho), Questões, Nome e cronômetro, Painel, Anexos, Anotações, Anotar, Marcar como concluído, setas de navegação, as duas colunas, coluna da esquerda, coluna da direita, Resolução e Dica.
 
 Passos cujo elemento não existe na aula são pulados automaticamente (ex.: numa aula sem `[simulado]` não há grade nem cronômetro). Navegação por botões, pelas setas do teclado e `Esc` para fechar.
 

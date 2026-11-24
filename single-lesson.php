@@ -1790,7 +1790,7 @@ a.tool-btn:focus {
 
                 <!-- Ferramentas da aula: Painel / Guia / Anexos / Anotacoes / Anotar -->
                 <div class="header-tools">
-                    <a href="<?php echo esc_url( $dashboard_url ); ?>" class="tool-btn" title="Ir para o meu painel">
+                    <a href="<?php echo esc_url( $dashboard_url ); ?>" id="btn-dashboard" class="tool-btn" title="Ir para o meu painel">
                         <span class="tool-ico">&#127968;</span>
                         <span class="tool-label">Painel</span>
                     </a>
@@ -2871,6 +2871,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<p>No cabeçalho da prova, mostramos seu nome e o cronômetro com o tempo real do exame: <strong>90 minutos</strong>.</p>' +
                     '<p>Na prova, o tempo é contínuo e, ao zerar, ela se encerra automaticamente. Aqui ele <strong>não fecha</strong> o simulado: serve para você se programar e ter noção do seu aproveitamento.</p>' +
                     '<p>A contagem é <strong>por simulado</strong> e continua correndo enquanto você passa de uma questão para outra. Use <span class="tour-key">&#10074;&#10074;</span> <strong>para pausar</strong>, caso você queira, e <span class="tour-key">&#10227;</span> <strong>para reiniciar</strong> caso queira refazer o simulado.</p>'
+            },
+            {
+                target: ['#btn-dashboard'],
+                title: 'Painel',
+                body: '<p>Leva você direto para o <strong>seu painel</strong>, onde ficam seus cursos, seu progresso e seus certificados.</p>' +
+                    '<p>Se você estiver no meio de um simulado, o cronômetro <strong>fica parado</strong> enquanto estiver fora e continua de onde parou quando você voltar.</p>'
             },
             {
                 target: ['[data-open-panel="panel-attachments"]'],
