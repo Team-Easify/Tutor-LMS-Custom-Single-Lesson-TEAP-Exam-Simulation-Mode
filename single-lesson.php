@@ -1460,6 +1460,33 @@ a.tool-btn:focus {
 	}
 }
 
+/* Telas largas: ferramentas em duas linhas (3 + 2); concluir e setas
+   continuam na mesma linha, ao lado */
+@media screen and (min-width: 1281px) {
+    .header-tools {
+        display: grid;
+        grid-template-columns: repeat(3, auto);
+        gap: 6px;
+    }
+
+    .header-tools .tool-btn {
+        justify-content: center;
+        padding: .5rem .8rem;
+    }
+
+    .header-actions {
+        gap: 12px;
+    }
+
+    .nav-arrows {
+        gap: 6px;
+    }
+
+    .finish-btn-wrapper .tutor-btn {
+        white-space: nowrap;
+    }
+}
+
 /* ==========================================================================
    CELULAR NA HORIZONTAL: header compacto e layout igual ao desktop
    (tela baixa e deitada; vem depois das regras acima para sobrescreve-las)
