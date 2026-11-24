@@ -309,10 +309,8 @@ if ( $is_exam_mode ) {
     ) );
 }
 
-// Link do botao "Painel": dashboard do aluno no Tutor LMS
-$dashboard_url = method_exists( tutor_utils(), 'tutor_dashboard_url' )
-    ? tutor_utils()->tutor_dashboard_url()
-    : home_url( '/dashboard/' );
+// Link do botao "Painel": pagina /painel do site
+$dashboard_url = home_url( '/painel/' );
 
 get_tutor_header( true );
 ?>
